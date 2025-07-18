@@ -7,7 +7,7 @@
 let signalEngine;
 let analysisInterval;
 let isAnalyzing = false;
-let mockDataGenerator;
+let marketDataManager;
 let telegramNotifier;
 let emailNotifier;
 
@@ -16,8 +16,15 @@ document.addEventListener('DOMContentLoaded', () => {
     // تهيئة محرك الإشارات
     signalEngine = new SignalEngine();
     
-    // تهيئة مولد البيانات الوهمية (للعرض التوضيحي فقط)
-    mockDataGenerator = new MockDataGenerator();
+    // تهيئة مدير بيانات السوق
+    marketDataManager = new MarketDataManager();
+    marketDataManager.init({
+        callbacks: {
+            onData: handleMarketData,
+            onError: handleMarketDataError,
+            onStatusChange: handleMarketStatusChange
+        }
+    });
     
     // تهيئة خدمات التنبيه
     initNotificationServices();
@@ -74,6 +81,19 @@ function initUIEvents() {
     // زر تصدير السجل
     document.getElementById('export-log').addEventListener('click', exportSignalLog);
     
+    // زر إعدادات Pocket Option
+    document.getElementById('pocket-option-settings').addEventListener('click', showPocketOptionConfigModal);
+    
+    // تغيير مصدر البيانات
+    document.getElementById('data-source').addEventListener('change', function() {
+        marketDataManager.setDataSource(this.value);
+        
+        // إذا تم اختيار Pocket Option ولم يتم تكوينه بعد، اعرض مودال التكوين
+        if (this.value === 'pocket-option' && !marketDataManager.isPocketOptionConfigured()) {
+            showPocketOptionConfigModal();
+        }
+    });
+    
     // تحديث الإعدادات عند تغييرها
     document.querySelectorAll('.setting-group select, .setting-group input').forEach(element => {
         element.addEventListener('change', updateSettings);
@@ -101,8 +121,12 @@ function startAnalysis() {
     // عرض إشعار
     showNotification('تم بدء التحليل', 'success');
     
-    // بدء التحليل الدوري
-    startPeriodicAnalysis();
+    // الحصول على الأصل والإطار الزمني من الإعدادات
+    const asset = document.getElementById('asset').value;
+    const timeframe = document.getElementById('timeframe').value;
+    
+    // بدء الحصول على بيانات السوق
+    marketDataManager.start(asset, timeframe);
 }
 
 /**
@@ -111,8 +135,8 @@ function startAnalysis() {
 function stopAnalysis() {
     if (!isAnalyzing) return;
     
-    // إيقاف التحليل الدوري
-    clearInterval(analysisInterval);
+    // إيقاف الحصول على بيانات السوق
+    marketDataManager.stop();
     
     // تحديث حالة التحليل
     isAnalyzing = false;
@@ -128,29 +152,10 @@ function stopAnalysis() {
 }
 
 /**
- * بدء التحليل الدوري
+ * معالجة بيانات السوق الواردة
+ * @param {Object} marketData - بيانات السوق
  */
-function startPeriodicAnalysis() {
-    // تحديد الفاصل الزمني بناءً على الإطار الزمني المحدد
-    const timeframeInMs = getTimeframeInMilliseconds();
-    
-    // تنفيذ التحليل الأول فورًا
-    performAnalysis();
-    
-    // إعداد التحليل الدوري
-    analysisInterval = setInterval(performAnalysis, timeframeInMs);
-}
-
-/**
- * تنفيذ عملية التحليل
- */
-function performAnalysis() {
-    // الحصول على بيانات السوق (في هذا المثال، نستخدم بيانات وهمية)
-    const marketData = mockDataGenerator.generateMarketData();
-    
-    // تحديث السعر الحالي للعرض
-    window.currentPrice = marketData.prices[marketData.prices.length - 1];
-    
+function handleMarketData(marketData) {
     // تحليل البيانات وتوليد إشارة إذا تم استيفاء الشروط
     const signal = signalEngine.analyzeMarket(marketData);
     
@@ -159,6 +164,38 @@ function performAnalysis() {
         displaySignal(signal);
         logSignal(signal);
         triggerAlerts(signal);
+    }
+}
+
+/**
+ * معالجة أخطاء بيانات السوق
+ * @param {Error} error - كائن الخطأ
+ */
+function handleMarketDataError(error) {
+    console.error('خطأ في بيانات السوق:', error);
+    showNotification('حدث خطأ في الحصول على بيانات السوق: ' + error.message, 'error');
+}
+
+/**
+ * معالجة تغييرات حالة السوق
+ * @param {Object} status - حالة السوق
+ */
+function handleMarketStatusChange(status) {
+    console.log('تغيير حالة السوق:', status);
+    
+    // تحديث حالة التحليل
+    isAnalyzing = status.isRunning;
+    updateUIState();
+    
+    // تحديث مؤشر الحالة
+    const statusIndicator = document.getElementById('status-indicator');
+    
+    if (status.isRunning) {
+        statusIndicator.className = 'status-indicator analyzing';
+        statusIndicator.querySelector('.status-text').textContent = 'جاري التحليل...';
+    } else {
+        statusIndicator.className = 'status-indicator inactive';
+        statusIndicator.querySelector('.status-text').textContent = 'غير نشط';
     }
 }
 
@@ -391,16 +428,20 @@ function updateSettings() {
             notification: document.getElementById('notification-alert').checked,
             email: document.getElementById('email-alert').checked,
             telegram: document.getElementById('telegram-alert').checked
-        }
+        },
+        dataSource: document.getElementById('data-source').value
     };
     
     // تحديث إعدادات المحرك
     signalEngine.updateSettings(settings);
     
+    // تحديث مصدر البيانات
+    marketDataManager.setDataSource(settings.dataSource);
+    
     // إذا كان التحليل جاريًا، أعد تشغيله بالإعدادات الجديدة
     if (isAnalyzing) {
-        clearInterval(analysisInterval);
-        startPeriodicAnalysis();
+        stopAnalysis();
+        startAnalysis();
     }
 }
 
@@ -859,6 +900,103 @@ function showTelegramConfigModal() {
         } else {
             showNotification('فشل في تكوين خدمة Telegram', 'error');
             document.getElementById('telegram-alert').checked = false;
+        }
+    };
+    
+    modalContent.appendChild(form);
+    modal.appendChild(modalContent);
+    document.body.appendChild(modal);
+}
+
+/**
+ * عرض نافذة تكوين خدمة Pocket Option
+ */
+function showPocketOptionConfigModal() {
+    // إنشاء عناصر النافذة
+    const modal = document.createElement('div');
+    modal.className = 'modal';
+    modal.id = 'pocket-option-config-modal';
+    
+    const modalContent = document.createElement('div');
+    modalContent.className = 'modal-content';
+    
+    // إضافة العنوان
+    const title = document.createElement('h2');
+    title.textContent = 'تكوين خدمة Pocket Option';
+    modalContent.appendChild(title);
+    
+    // إضافة الوصف
+    const description = document.createElement('p');
+    description.textContent = 'يرجى إدخال معرف جلسة Pocket Option للوصول إلى بيانات السوق المباشرة.';
+    modalContent.appendChild(description);
+    
+    // إضافة تعليمات للحصول على معرف الجلسة
+    const instructions = document.createElement('div');
+    instructions.className = 'instructions';
+    instructions.innerHTML = `
+        <p>للحصول على معرف الجلسة من Pocket Option، اتبع الخطوات التالية:</p>
+        <ol>
+            <li>قم بتسجيل الدخول إلى حساب Pocket Option الخاص بك</li>
+            <li>اضغط F12 لفتح أدوات المطور (أو انقر بزر الماوس الأيمن واختر "فحص")</li>
+            <li>انتقل إلى علامة التبويب "التطبيق" أو "التخزين"</li>
+            <li>ابحث عن "ملفات تعريف الارتباط" وابحث عن "PHPSESSID"</li>
+            <li>انسخ قيمة "PHPSESSID" وألصقها في الحقل أدناه</li>
+        </ol>
+    `;
+    modalContent.appendChild(instructions);
+    
+    // إضافة حقول الإدخال
+    const form = document.createElement('form');
+    form.id = 'pocket-option-config-form';
+    
+    // حقل معرف الجلسة
+    const sessionIdGroup = document.createElement('div');
+    sessionIdGroup.className = 'form-group';
+    const sessionIdLabel = document.createElement('label');
+    sessionIdLabel.textContent = 'معرف الجلسة:';
+    sessionIdLabel.setAttribute('for', 'pocket-option-session-id');
+    const sessionIdInput = document.createElement('input');
+    sessionIdInput.type = 'text';
+    sessionIdInput.id = 'pocket-option-session-id';
+    sessionIdInput.required = true;
+    sessionIdInput.value = marketDataManager.getPocketOptionSessionId() || '';
+    sessionIdGroup.appendChild(sessionIdLabel);
+    sessionIdGroup.appendChild(sessionIdInput);
+    form.appendChild(sessionIdGroup);
+    
+    // أزرار الإجراءات
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+    
+    const saveButton = document.createElement('button');
+    saveButton.type = 'submit';
+    saveButton.className = 'btn btn-primary';
+    saveButton.textContent = 'حفظ';
+    
+    const cancelButton = document.createElement('button');
+    cancelButton.type = 'button';
+    cancelButton.className = 'btn btn-secondary';
+    cancelButton.textContent = 'إلغاء';
+    cancelButton.onclick = () => {
+        document.body.removeChild(modal);
+    };
+    
+    actions.appendChild(saveButton);
+    actions.appendChild(cancelButton);
+    form.appendChild(actions);
+    
+    // معالجة تقديم النموذج
+    form.onsubmit = (e) => {
+        e.preventDefault();
+        
+        const sessionId = document.getElementById('pocket-option-session-id').value;
+        
+        if (sessionId) {
+            marketDataManager.setPocketOptionSessionId(sessionId);
+            showNotification('تم تكوين خدمة Pocket Option بنجاح', 'success');
+            document.body.removeChild(modal);
+        } else {
+            showNotification('يرجى إدخال معرف الجلسة', 'error');
         }
     };
     
