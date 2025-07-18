@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الإشارات الذكية للخيارات الثنائية</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-chart-line"></i> نظام الإشارات الذكية</h1>
+            <p>تحليل دقيق وإشارات قوية للتداول</p>
+        </header>
+
+        <div class="main-content">
+            <div class="settings-panel">
+                <h2>إعدادات التحليل</h2>
+                
+                <div class="setting-group">
+                    <label for="timeframe">الفريم الزمني:</label>
+                    <select id="timeframe">
+                        <option value="15s">15 ثانية</option>
+                        <option value="30s">30 ثانية</option>
+                        <option value="1m" selected>1 دقيقة</option>
+                        <option value="2m">2 دقيقة</option>
+                        <option value="5m">5 دقائق</option>
+                        <option value="15m">15 دقيقة</option>
+                        <option value="30m">30 دقيقة</option>
+                        <option value="1h">1 ساعة</option>
+                        <option value="4h">4 ساعات</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="asset">الأصل (العملة):</label>
+                    <select id="asset">
+                        <option value="EURUSD" selected>EUR/USD</option>
+                        <option value="GBPUSD">GBP/USD</option>
+                        <option value="USDJPY">USD/JPY</option>
+                        <option value="BTCUSD">BTC/USD</option>
+                        <option value="ETHUSD">ETH/USD</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label for="candles">عدد الشمعات للتحليل:</label>
+                    <input type="number" id="candles" min="3" max="20" value="5">
+                </div>
+
+                <div class="setting-group">
+                    <label for="signal-timing">توقيت الإشارة:</label>
+                    <select id="signal-timing">
+                        <option value="instant" selected>لحظية</option>
+                        <option value="close">بعد إغلاق الشمعة</option>
+                    </select>
+                </div>
+
+                <div class="setting-group">
+                    <label>المؤشرات المستخدمة:</label>
+                    <div class="indicators-list">
+                        <div class="indicator-item">
+                            <input type="checkbox" id="rsi" checked>
+                            <label for="rsi">RSI</label>
+                        </div>
+                        <div class="indicator-item">
+                            <input type="checkbox" id="ema" checked>
+                            <label for="ema">EMA</label>
+                        </div>
+                        <div class="indicator-item">
+                            <input type="checkbox" id="bollinger" checked>
+                            <label for="bollinger">Bollinger Bands</label>
+                        </div>
+                        <div class="indicator-item">
+                            <input type="checkbox" id="macd" checked>
+                            <label for="macd">MACD</label>
+                        </div>
+                        <div class="indicator-item">
+                            <input type="checkbox" id="volume" checked>
+                            <label for="volume">Volume</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label>خيارات التنبيه:</label>
+                    <div class="alert-options">
+                        <div class="alert-item">
+                            <input type="checkbox" id="sound-alert" checked>
+                            <label for="sound-alert">صوت</label>
+                        </div>
+                        <div class="alert-item">
+                            <input type="checkbox" id="notification-alert" checked>
+                            <label for="notification-alert">إشعار</label>
+                        </div>
+                        <div class="alert-item">
+                            <input type="checkbox" id="email-alert">
+                            <label for="email-alert">بريد إلكتروني</label>
+                        </div>
+                        <div class="alert-item">
+                            <input type="checkbox" id="telegram-alert">
+                            <label for="telegram-alert">Telegram</label>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="setting-group">
+                    <label for="min-strength">الحد الأدنى لقوة الإشارة:</label>
+                    <select id="min-strength">
+                        <option value="weak">ضعيفة</option>
+                        <option value="medium" selected>متوسطة</option>
+                        <option value="strong">قوية</option>
+                    </select>
+                </div>
+
+                <button id="start-analysis" class="btn primary">بدء التحليل</button>
+                <button id="stop-analysis" class="btn secondary" disabled>إيقاف التحليل</button>
+            </div>
+
+            <div class="signal-panel">
+                <div class="current-status">
+                    <h2>حالة التحليل</h2>
+                    <div id="status-indicator" class="status-indicator inactive">
+                        <span class="status-text">غير نشط</span>
+                    </div>
+                </div>
+
+                <div class="latest-signal">
+                    <h2>آخر إشارة</h2>
+                    <div id="signal-container" class="signal-container empty">
+                        <div class="no-signal">لا توجد إشارات حالية</div>
+                        <div class="signal-content">
+                            <div class="signal-header">
+                                <span id="signal-asset" class="signal-asset">EUR/USD</span>
+                                <span id="signal-time" class="signal-time">12:30:45</span>
+                            </div>
+                            <div id="signal-type" class="signal-type buy">
+                                <i class="fas fa-arrow-up"></i> شراء
+                            </div>
+                            <div class="signal-details">
+                                <div class="signal-strength">
+                                    <span>قوة الإشارة:</span>
+                                    <div id="strength-indicator" class="strength-indicator strong">
+                                        <i class="fas fa-circle"></i>
+                                        <i class="fas fa-circle"></i>
+                                        <i class="fas fa-circle"></i>
+                                    </div>
+                                </div>
+                                <div class="signal-indicators">
+                                    <span>المؤشرات المتوافقة:</span>
+                                    <ul id="matched-indicators">
+                                        <li>RSI < 30</li>
+                                        <li>EMA 5 > EMA 20</li>
+                                        <li>MACD تقاطع إيجابي</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="signal-log">
+                    <h2>سجل الإشارات</h2>
+                    <div class="log-controls">
+                        <button id="clear-log" class="btn small">مسح السجل</button>
+                        <button id="export-log" class="btn small">تصدير CSV</button>
+                    </div>
+                    <div class="log-table-container">
+                        <table id="signal-log-table">
+                            <thead>
+                                <tr>
+                                    <th>الوقت</th>
+                                    <th>الأصل</th>
+                                    <th>الفريم</th>
+                                    <th>النوع</th>
+                                    <th>القوة</th>
+                                    <th>النتيجة</th>
+                                </tr>
+                            </thead>
+                            <tbody id="signal-log-body">
+                                <!-- سيتم إضافة الصفوف ديناميكيًا هنا -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="notification" class="notification">
+        <div class="notification-content">
+            <i class="notification-icon"></i>
+            <span class="notification-message"></span>
+        </div>
+    </div>
+
+    <audio id="alert-sound" src="sounds/alert.mp3"></audio>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="js/indicators.js"></script>
+    <script src="js/signals.js"></script>
+    <script src="js/app.js"></script>
+</body>
+</html>
