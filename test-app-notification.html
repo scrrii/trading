@@ -1,0 +1,476 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختبار إشعارات التطبيق</title>
+    <!-- Font Awesome للأيقونات -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">
+    <!-- أنماط CSS -->
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+            direction: rtl;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .test-buttons {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 30px;
+            justify-content: center;
+        }
+        
+        .btn {
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background-color 0.3s;
+        }
+        
+        .btn-primary {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        .btn-secondary {
+            background-color: #2196F3;
+            color: white;
+        }
+        
+        .btn-danger {
+            background-color: #f44336;
+            color: white;
+        }
+        
+        .btn:hover {
+            opacity: 0.9;
+        }
+        
+        /* أنماط الإشعارات */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background-color: #fff;
+            padding: 15px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            align-items: center;
+            min-width: 300px;
+            max-width: 80%;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s, visibility 0.3s;
+        }
+        
+        .notification.show {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        .notification-icon {
+            margin-left: 15px;
+            font-size: 20px;
+        }
+        
+        .notification-content {
+            flex-grow: 1;
+        }
+        
+        .notification-message {
+            margin: 0;
+            font-size: 16px;
+        }
+        
+        .notification.success {
+            border-right: 4px solid #4CAF50;
+        }
+        
+        .notification.success .notification-icon {
+            color: #4CAF50;
+        }
+        
+        .notification.error {
+            border-right: 4px solid #f44336;
+        }
+        
+        .notification.error .notification-icon {
+            color: #f44336;
+        }
+        
+        .notification.info {
+            border-right: 4px solid #2196F3;
+        }
+        
+        .notification.info .notification-icon {
+            color: #2196F3;
+        }
+        
+        /* أنماط النافذة المنبثقة */
+        .modal {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1001;
+        }
+        
+        .modal-content {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            width: 400px;
+            max-width: 90%;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        
+        .form-group input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+        
+        .log-container {
+            margin-top: 30px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            background-color: #f9f9f9;
+            height: 200px;
+            overflow-y: auto;
+        }
+        
+        .log-title {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 18px;
+            color: #333;
+        }
+        
+        .log-entry {
+            margin-bottom: 5px;
+            padding: 5px;
+            border-bottom: 1px solid #eee;
+            font-family: monospace;
+        }
+        
+        .log-entry.success {
+            color: #4CAF50;
+        }
+        
+        .log-entry.error {
+            color: #f44336;
+        }
+        
+        .log-entry.info {
+            color: #2196F3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>اختبار إشعارات التطبيق</h1>
+        
+        <div class="test-buttons">
+            <button id="test-success" class="btn btn-primary">إشعار نجاح</button>
+            <button id="test-error" class="btn btn-danger">إشعار خطأ</button>
+            <button id="test-info" class="btn btn-secondary">إشعار معلومات</button>
+            <button id="test-session" class="btn btn-primary">اختبار حفظ معرف الجلسة</button>
+            <button id="test-modal" class="btn btn-secondary">اختبار النافذة المنبثقة</button>
+        </div>
+        
+        <div class="log-container">
+            <h3 class="log-title">سجل الأحداث</h3>
+            <div id="log-entries"></div>
+        </div>
+    </div>
+    
+    <!-- عنصر الإشعار -->
+    <div id="notification" class="notification">
+        <div class="notification-icon">
+            <i class="fas fa-info-circle"></i>
+        </div>
+        <div class="notification-content">
+            <p class="notification-message">هذا هو نص الإشعار</p>
+        </div>
+    </div>
+    
+    <!-- سكريبت اختبار الإشعارات -->
+    <script>
+        // إضافة سجل إلى حاوية السجلات
+        function addLogEntry(message, type = 'info') {
+            const logContainer = document.getElementById('log-entries');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
+            logContainer.appendChild(logEntry);
+            logContainer.scrollTop = logContainer.scrollHeight;
+        }
+        
+        // عند تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', () => {
+            // تهيئة أحداث الاختبار
+            initTestEvents();
+            
+            // عرض رسالة ترحيبية
+            showNotification('مرحبًا بك في اختبار إشعارات التطبيق', 'success');
+            addLogEntry('تم تحميل الصفحة بنجاح', 'success');
+        });
+        
+        /**
+         * تهيئة أحداث الاختبار
+         */
+        function initTestEvents() {
+            // إضافة مستمع الحدث لزر اختبار النجاح
+            const testSuccessButton = document.getElementById('test-success');
+            if (testSuccessButton) {
+                testSuccessButton.addEventListener('click', () => {
+                    showNotification('تمت العملية بنجاح!', 'success');
+                    addLogEntry('تم عرض إشعار نجاح', 'success');
+                });
+            }
+            
+            // إضافة مستمع الحدث لزر اختبار الخطأ
+            const testErrorButton = document.getElementById('test-error');
+            if (testErrorButton) {
+                testErrorButton.addEventListener('click', () => {
+                    showNotification('حدث خطأ أثناء تنفيذ العملية!', 'error');
+                    addLogEntry('تم عرض إشعار خطأ', 'error');
+                });
+            }
+            
+            // إضافة مستمع الحدث لزر اختبار المعلومات
+            const testInfoButton = document.getElementById('test-info');
+            if (testInfoButton) {
+                testInfoButton.addEventListener('click', () => {
+                    showNotification('هذه معلومات مهمة!', 'info');
+                    addLogEntry('تم عرض إشعار معلومات', 'info');
+                });
+            }
+            
+            // إضافة مستمع الحدث لزر اختبار حفظ معرف الجلسة
+            const testSessionButton = document.getElementById('test-session');
+            if (testSessionButton) {
+                testSessionButton.addEventListener('click', () => {
+                    const sessionId = 'test-session-id-123';
+                    addLogEntry(`محاولة حفظ معرف الجلسة: ${sessionId}`, 'info');
+                    
+                    try {
+                        // محاكاة حفظ معرف الجلسة
+                        localStorage.setItem('pocketOptionSessionId', sessionId);
+                        
+                        // عرض إشعار نجاح
+                        showNotification('تم حفظ معرف الجلسة بنجاح', 'success');
+                        addLogEntry('تم حفظ معرف الجلسة بنجاح', 'success');
+                    } catch (error) {
+                        addLogEntry(`خطأ في حفظ معرف الجلسة: ${error.message}`, 'error');
+                        showNotification('حدث خطأ أثناء حفظ معرف الجلسة', 'error');
+                    }
+                });
+            }
+            
+            // إضافة مستمع الحدث لزر اختبار فتح النافذة المنبثقة
+            const testModalButton = document.getElementById('test-modal');
+            if (testModalButton) {
+                testModalButton.addEventListener('click', () => {
+                    addLogEntry('محاولة فتح النافذة المنبثقة', 'info');
+                    showTestModal();
+                });
+            }
+        }
+        
+        /**
+         * عرض إشعار على الشاشة
+         * @param {String} message - نص الإشعار
+         * @param {String} type - نوع الإشعار (success, error, info)
+         */
+        function showNotification(message, type = 'info') {
+            addLogEntry(`عرض الإشعار: ${message} (${type})`, 'info');
+            
+            const notification = document.getElementById('notification');
+            if (!notification) {
+                addLogEntry('عنصر الإشعار غير موجود في الصفحة', 'error');
+                return;
+            }
+            
+            const notificationIcon = notification.querySelector('.notification-icon i');
+            const notificationMessage = notification.querySelector('.notification-message');
+            
+            if (!notificationIcon || !notificationMessage) {
+                addLogEntry('عناصر الإشعار الفرعية غير موجودة', 'error');
+                return;
+            }
+            
+            // تعيين نوع الإشعار
+            notification.className = 'notification ' + type;
+            
+            // تعيين الأيقونة المناسبة
+            let iconClass = 'fas ';
+            switch (type) {
+                case 'success':
+                    iconClass += 'fa-check-circle';
+                    break;
+                case 'error':
+                    iconClass += 'fa-exclamation-circle';
+                    break;
+                default:
+                    iconClass += 'fa-info-circle';
+            }
+            notificationIcon.className = iconClass;
+            
+            // تعيين الرسالة
+            notificationMessage.textContent = message;
+            
+            // عرض الإشعار
+            notification.classList.add('show');
+            addLogEntry('تم إضافة فئة show للإشعار', 'info');
+            
+            // إخفاء الإشعار بعد 5 ثوانٍ
+            setTimeout(() => {
+                notification.classList.remove('show');
+                addLogEntry('تم إزالة فئة show من الإشعار', 'info');
+            }, 5000);
+        }
+        
+        /**
+         * عرض نافذة اختبار منبثقة
+         */
+        function showTestModal() {
+            // إنشاء عناصر النافذة
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.id = 'test-modal';
+            
+            const modalContent = document.createElement('div');
+            modalContent.className = 'modal-content';
+            
+            // إضافة العنوان
+            const title = document.createElement('h2');
+            title.textContent = 'اختبار النافذة المنبثقة';
+            modalContent.appendChild(title);
+            
+            // إضافة الوصف
+            const description = document.createElement('p');
+            description.textContent = 'هذه نافذة اختبار لمحاكاة نافذة تكوين Pocket Option.';
+            modalContent.appendChild(description);
+            
+            // إضافة حقول الإدخال
+            const form = document.createElement('form');
+            form.id = 'test-form';
+            
+            // حقل معرف الجلسة
+            const sessionIdGroup = document.createElement('div');
+            sessionIdGroup.className = 'form-group';
+            const sessionIdLabel = document.createElement('label');
+            sessionIdLabel.textContent = 'معرف الجلسة:';
+            sessionIdLabel.setAttribute('for', 'test-session-id');
+            const sessionIdInput = document.createElement('input');
+            sessionIdInput.type = 'text';
+            sessionIdInput.id = 'test-session-id';
+            sessionIdInput.required = true;
+            sessionIdInput.value = 'test-session-id-123';
+            sessionIdGroup.appendChild(sessionIdLabel);
+            sessionIdGroup.appendChild(sessionIdInput);
+            form.appendChild(sessionIdGroup);
+            
+            // أزرار الإجراءات
+            const actions = document.createElement('div');
+            actions.className = 'modal-actions';
+            
+            const saveButton = document.createElement('button');
+            saveButton.type = 'submit';
+            saveButton.className = 'btn btn-primary';
+            saveButton.textContent = 'حفظ';
+            
+            const cancelButton = document.createElement('button');
+            cancelButton.type = 'button';
+            cancelButton.className = 'btn btn-danger';
+            cancelButton.textContent = 'إلغاء';
+            cancelButton.onclick = () => {
+                document.body.removeChild(modal);
+                addLogEntry('تم إغلاق النافذة المنبثقة', 'info');
+            };
+            
+            actions.appendChild(saveButton);
+            actions.appendChild(cancelButton);
+            form.appendChild(actions);
+            
+            // معالجة تقديم النموذج
+            form.onsubmit = (e) => {
+                e.preventDefault();
+                
+                const sessionId = document.getElementById('test-session-id').value;
+                addLogEntry(`تم إرسال النموذج مع معرف الجلسة: ${sessionId}`, 'info');
+                
+                if (sessionId) {
+                    try {
+                        // محاكاة حفظ معرف الجلسة
+                        localStorage.setItem('testSessionId', sessionId);
+                        
+                        showNotification('تم حفظ معرف الجلسة بنجاح', 'success');
+                        addLogEntry('تم حفظ معرف الجلسة بنجاح', 'success');
+                        document.body.removeChild(modal);
+                    } catch (error) {
+                        addLogEntry(`خطأ في حفظ معرف الجلسة: ${error.message}`, 'error');
+                        showNotification('حدث خطأ أثناء حفظ معرف الجلسة', 'error');
+                    }
+                } else {
+                    showNotification('يرجى إدخال معرف الجلسة', 'error');
+                    addLogEntry('محاولة حفظ معرف جلسة فارغ', 'error');
+                }
+            };
+            
+            modalContent.appendChild(form);
+            modal.appendChild(modalContent);
+            document.body.appendChild(modal);
+            addLogEntry('تم إضافة النافذة المنبثقة إلى الصفحة', 'info');
+        }
+    </script>
+</body>
+</html>
