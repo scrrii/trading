@@ -31,8 +31,38 @@ class PocketOptionConnector {
      * @param {string} sessionId - معرف الجلسة من Pocket Option
      */
     setSessionId(sessionId) {
+        if (!sessionId) {
+            console.error('معرف الجلسة غير صالح');
+            return;
+        }
+
+        // التحقق مما إذا كان معرف الجلسة بتنسيق PHP المشفر
+        if (sessionId.startsWith('a:4:') && sessionId.includes('session_id')) {
+            try {
+                // استخراج معرف الجلسة الفعلي من النص المشفر
+                const match = sessionId.match(/s:10:"session_id";s:\d+:"([a-f0-9]+)"/i) || 
+                              sessionId.match(/s:10:"session_id";s:\d+:"([^"]+)"/i);
+                
+                if (match && match[1]) {
+                    console.log('تم استخراج معرف الجلسة بنجاح:', match[1]);
+                    sessionId = match[1];
+                } else {
+                    console.warn('لم يتم العثور على معرف الجلسة في النص المشفر');
+                }
+            } catch (error) {
+                console.error('خطأ في معالجة معرف الجلسة:', error);
+            }
+        } else if (sessionId.length > 100) {
+            // إذا كان النص طويلاً جدًا ولكن لا يتطابق مع النمط المعروف
+            console.warn('تم توفير نص طويل كمعرف جلسة، قد لا يكون بالتنسيق الصحيح');
+        }
+        
+        // تنظيف معرف الجلسة من أي أحرف غير مرغوب فيها
+        sessionId = sessionId.trim();
+        
         this.sessionId = sessionId;
         localStorage.setItem('pocketOptionSessionId', sessionId);
+        console.log('تم حفظ معرف الجلسة بنجاح');
     }
 
     /**
@@ -59,10 +89,17 @@ class PocketOptionConnector {
      */
     async validateSession() {
         if (!this.sessionId) {
+            console.warn('لا يوجد معرف جلسة للتحقق منه');
             return Promise.resolve(false);
         }
 
+        // التحقق من تنسيق معرف الجلسة
+        if (this.sessionId.length < 10 || this.sessionId.length > 100) {
+            console.warn('معرف الجلسة غير صالح: الطول غير صحيح');
+        }
+
         try {
+            console.log('جاري التحقق من صلاحية معرف الجلسة...');
             // محاولة الحصول على معلومات المستخدم للتحقق من صلاحية الجلسة
             const response = await fetch(`${this.apiBaseUrl}/v1/user/info`, {
                 method: 'GET',
@@ -74,8 +111,11 @@ class PocketOptionConnector {
 
             if (response.ok) {
                 const data = await response.json();
-                return data && data.success;
+                const isValid = data && data.success;
+                console.log('نتيجة التحقق من معرف الجلسة:', isValid ? 'صالح' : 'غير صالح');
+                return isValid;
             }
+            console.warn('فشل التحقق من معرف الجلسة: استجابة غير ناجحة من الخادم');
             return false;
         } catch (error) {
             console.error('خطأ في التحقق من صلاحية الجلسة:', error);

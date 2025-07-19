@@ -942,6 +942,12 @@ function showPocketOptionConfigModal() {
             <li>ابحث عن "ملفات تعريف الارتباط" وابحث عن "PHPSESSID"</li>
             <li>انسخ قيمة "PHPSESSID" وألصقها في الحقل أدناه</li>
         </ol>
+        <p><strong>ملاحظة هامة:</strong> يمكنك إدخال معرف الجلسة بأي من التنسيقين التاليين:</p>
+        <ul>
+            <li>معرف الجلسة المباشر (مثل: 1005760b5e7f82a565345a7125c93dab)</li>
+            <li>أو النص الكامل المشفر (مثل: a:4:{s:10:"session_id";s:32:"1005760b5e7f82a565345a7125c93dab";...})</li>
+        </ul>
+        <p>النظام سيقوم تلقائيًا باستخراج معرف الجلسة الصحيح.</p>
     `;
     modalContent.appendChild(instructions);
     
@@ -992,9 +998,22 @@ function showPocketOptionConfigModal() {
         const sessionId = document.getElementById('pocket-option-session-id').value;
         
         if (sessionId) {
-            marketDataManager.setPocketOptionSessionId(sessionId);
-            showNotification('تم تكوين خدمة Pocket Option بنجاح', 'success');
-            document.body.removeChild(modal);
+            try {
+                // حفظ معرف الجلسة
+                marketDataManager.setPocketOptionSessionId(sessionId);
+                
+                // التحقق من نوع معرف الجلسة المدخل
+                let messageType = 'تم تكوين خدمة Pocket Option بنجاح';
+                if (sessionId.startsWith('a:4:') && sessionId.includes('session_id')) {
+                    messageType += ' (تم استخراج معرف الجلسة من النص المشفر)';
+                }
+                
+                showNotification(messageType, 'success');
+                document.body.removeChild(modal);
+            } catch (error) {
+                console.error('خطأ في حفظ معرف الجلسة:', error);
+                showNotification('حدث خطأ أثناء حفظ معرف الجلسة', 'error');
+            }
         } else {
             showNotification('يرجى إدخال معرف الجلسة', 'error');
         }
